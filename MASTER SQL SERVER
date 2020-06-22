@@ -1,0 +1,364 @@
+--***************************************************************************************************************************
+--Crear una tabla
+CREATE TABLE Paciente1(
+ idpaciente int identity (1,1) NOT NULL,
+ nombre varchar(50) NOT NULL,
+ apellido varchar (50) NOT NULL,
+ fnacimiento date NOT NULL,
+ domicilio varchar(50) NOT NULL,
+ idpais char(3) null,
+ telefono varchar(20) NOT NULL,
+ email varchar(30) NOT NULL,
+ observación varchar(1000) NOT NULL,
+ fechaalta datetime NOT NULL,
+ constraint PK_idpaciente PRIMARY KEY (idpaciente)
+ )
+ 
+/*insertar 1 registro*/
+INSERT INTO Paciente1 VALUES(0, 'ivan', 'jardon', '1994-08-11', 'toluca', 'MEX','7223496980','nuevo','2020-19-06')
+
+/*crear foreign key*/
+ALTER TABLE Paciente
+ADD FOREIGN KEY(idPais) REFERENCES Pais(idPais)
+
+/*resetear campo identity*/
+dbcc CHECKIDENT('tabla1', RESEED,0)
+
+/*Insertar registros*/
+USE centromedico
+GO
+insert into turno values ( '20200302 13:00', 0 , '' )
+insert into turno values ( '20200303 14:00', 0 , '')
+insert into turno values ( '20200303 15:30', 1 , 'El paciente ha sido atendido' )
+insert into turno values ( '20200305 18:00', 2 , 'El paciente llamó para cancelar el turno' ) 
+
+
+-Crear un tipo de dato
+Create type pais from char(3)
+
+--***************************************************************************************************************************
+--Comandos, clausulas y funciones de agregado
+
+-SELECT
+select * from paciente where nombre='juan' and apellido= 'lopez'
+select top 2 * from paciente where apellido= 'lopez'
+select top 1 * from turno order by fechaturno desc
+select distinct apellido from paciente 
+select apellido from paciente group by apellido
+select Max(idPaciente) from idPaciente
+select Min(idPaciente) from idPaciente
+select apellido,Max(idPaciente) from Paciente
+select sum(idpaciente) from paciente group by apellido
+select avg(idpaciente) from paciente group by apellido
+select count(*) from paciente where apellido = 'Perez'
+--Having se utiliza junto con group by 
+select estado from turno group by estado having count(estado)=2 
+select * from turno where estado IN(2,1,3)
+select * from paciente where nombre LIKE '%ober%'
+select * from paciente where nombre NOT LIKE '%ober%'
+select * from turno where estado NOT IN(2,1,3)
+SELECT * FROM TURNO WHERE fechaturno between '20200101' and '20200106 13:00:00'
+select * from apellido and (nombre='roberto' or idpaciente=7 or idpais='per') and idpaciente not in(6,3)
+
+--INSERT
+insert into paciente (nombre, apellido, fnacimiento,idpais) values ('nombre','apellido','aaaa-mm-dd',"ESP',1)
+
+--DELETE
+delete from paciente where nombre='juan' and apellido= 'lopez'
+
+--UPDATE
+update paciente set campo='PER' where idpaciente=8
+
+--***************************************************************************************************************************
+
+--STORED PROCEDURE conjunto de instrucciones
+CREATE PROC SP_ejemplo(
+@idpaciente int
+)
+AS
+Select apellido, nombre, idpais from paciente WHERE idpaciente=@idpaciente
+GO
+
+-EJECUTARLA
+EXEC SP_ejemplo 5 
+
+--Declarar variables (Objeto memoria con un valor)
+DECLARE @ordenamiento CHAR(1)='A'
+--Otro modo
+SET @ordenamiento='B'
+
+DECLARE @ordenamiento CHAR(10)
+DECLARE @valorordenamiento CHAR(10)
+SET @valorordenamiento=ISNULL(@ordenamiento,'es nulo') /*si es nulo por default le pone A*/
+print @valorordenamiento
+
+--SUBCONSULTAS
+SELECT apellido,nombre, idpais,observacion,
+(SELECT ps.pais from Pais where ps.idpais=pa.idpais) as desc pais
+from paciente pa where idpaciente=@idpaciente
+
+
+--***************************************************************************************************************************
+--Estructuras de control
+--if
+declare @idpaciente int
+declare @idturno int
+set @idpaciente=7
+if @idpaciente=7 
+BEGIN
+set @idturno=20
+select * from paciente where idpaciente=@idpaciente
+print @idturno
+END
+ELSE
+BEGIN
+  PRINT 'NO SE CUMPLIO'
+END
+
+--Exist
+IF EXISTS (SELECT * FROM paciente where idpaciente=4) /*devuelve true*/
+print 'Existe'
+
+--While
+declare @contador int = 0
+while @contador<=10
+Begin
+  print @contador
+  set @contador=@contador+1
+END
+
+--CASE
+declare @valor int
+declare @resultado char(10)=''
+set @valor=20
+set @resultado=(CASE WHEN @valor=10 then 'Rojo'
+when @valor=20 then 'verde'
+when @valor=30 then 'azul'
+end)
+print @resultado
+
+select * , (case 
+when estado=1 then 'verde'
+when estado=2 then 'rojo'
+when estado=3 then 'azul'
+else 'gris'
+end) as colorturno from turno
+
+--RETURN PERMITE SALIR DEL SCRIPT 
+declare @contador int = 0
+while @contador<=10
+Begin
+  print @contador
+  set @contador=@contador+1
+  If @contador=3
+    RETURN
+END
+  
+ --BREAK INTERRUMPE LOOP Y CONTINUA CON INSTRUCCIONES 
+declare @contador int = 0
+while @contador<=10
+Begin
+  print @contador
+  set @contador=@contador+1
+  If @contador=3
+    BREAK
+END
+PRINT 'SIGUE EJECUTANDO'
+
+--TRY CATCH
+ DECLARE @contador int
+BEGIN TRY
+   set @contador='texto'
+END TRY
+
+BEGIN CATCH
+  print 'No es posible asignar un texto a la variable @contador'
+END CATCH
+
+--***************************************************************************************************************************
+--Operadores aritméticos
++
+-
+/
+*
+% /*modulo*/
+--Se puede concatenar con suma
+Declare @nombre varchar(10)='ivan'
+declare @apellido varchar(10)='jardon'
+declare  @resultado varchar (20)
+set @resultado=@nombre+' '+ @apellido
+print @resultado
+
+--Operadores <,>,=,<>
+
+
+--***************************************************************************************************************************
+
+--Crear un stored procedure para dar de alta un paciente
+
+CREATE proc ALTA_Paciente(
+			@dni varchar(20),
+			@nombre varchar(50),
+			@apellido varchar(50),
+			@fnacimiento varchar(8),
+			@domicilio varchar(50),
+			@idpais char(3),
+			@tel varchar(20)='',
+			@email varchar(30),
+			@observacion varchar(1000)=''
+			)
+
+as
+
+IF NOT EXISTS(SELECT * from Paciente WHERE dni=@dni)
+BEGIN
+	INSERT INTO Paciente (dni,nombre,apellido,fnacimiento,domicilio,idpais,telefono,email,observacion)
+	VALUES (@dni,@nombre,@apellido,@fnacimiento,@domicilio,@idpais,@tel,@email,@observacion)
+	print 'El paciente se agregó correctamente'
+	return
+END
+ELSE
+BEGIN
+	print 'El paciente ya existe.'
+	return
+END
+
+exec ALTA_Paciente '2324324','Jorge','Lopez','20180518','calle 1','PER','','jorgelopez@gmail.com',''
+
+/*
+select * from turno
+select * from paciente
+select * from turnopaciente
+select * from medico
+insert into medico values(2,'Pablo','Ramirez')
+*/
+
+--EXEC ALTA_turno '20190218 09:15',6,1,'Nada'
+
+CREATE proc ALTA_Turno(
+			@fecha char(14), --20190215 12:00
+			@idpaciente paciente,
+			@idmedico medico,
+			@observacion observacion=''
+			)
+
+as
+
+/*
+ESTADO = 0 (pendiente)
+ESTADO = 1 (realizado)
+ESTADO = 2 (cancelado)
+
+--Crear un stored procedure para dar de alta un turno
+set nocount on
+
+IF NOT EXISTS(SELECT TOP 1 idturno from Turno WHERE fechaturno=@fecha)
+BEGIN
+	INSERT INTO Turno (fechaturno,estado,observacion)
+	VALUES (@fecha,0,@observacion)
+
+	declare @auxIdturno turno
+	set @auxIdturno = @@IDENTITY
+
+	INSERT INTO TurnoPaciente (idturno,idpaciente,idmedico)
+	VALUES (@auxIdturno,@idpaciente,@idmedico)
+
+	print 'El turno se agregó correctamente'
+	return
+
+	
+END
+ELSE
+BEGIN
+	print 'El turno ya existe.'
+	return
+END
+
+--Crear un stored procedure para dar de alta un medico
+
+/*
+select * from Medico
+select * from MedicoEspecialidad
+*/
+
+
+
+--EXEC ALTA_medico 'Gerardo','Martinez',1,'Medico residente'
+
+CREATE proc ALTA_Medico(
+			@nombre varchar(50),
+			@apellido varchar(20),
+			@idespecialidad int,
+			@descripcion varchar(50)
+			)
+
+as
+set nocount on
+
+IF NOT EXISTS(SELECT TOP 1 idmedico from Medico WHERE nombre=@nombre and apellido = @apellido)
+BEGIN
+	
+	INSERT INTO Medico (nombre, apellido)
+	VALUES (@nombre,@apellido)
+		
+	declare @auxIdmedico int
+	set @auxIdmedico = @@IDENTITY
+
+	INSERT INTO MedicoEspecialidad (Idmedico, idespecialidad,descripcion)
+	VALUES (@auxIdmedico, @idespecialidad,@descripcion)
+
+	print 'El Médico se agregó correctamente'
+	return
+
+	
+END
+ELSE
+BEGIN
+	print 'El Médico ya existe.'
+	return
+END
+
+--***************************************************************************************************************************
+--Crear una funcion
+Create function nombrefun(@var int)
+returns int
+as
+begin
+set @var=@var*5
+return @var
+end
+--Ejecutarla
+Select dbo.nombrefun(5)
+
+--***************************************************************************************************************************
+--Comando Create ya visto
+--Comando alter
+Alter table paciente add estado smallint
+ALTER TABLE panciente Alter Column estado bit
+Alter table paciente drop column estado
+
+--Comando drop Borra tabla o campos
+Drop table ejemplo
+
+--TRUNCATE Elimina todos los registros y resetea identity
+TRUNCATE table ejemplo
+
+--***************************************************************************************************************************
+--Funciones de conversion
+--LEFT, RIGHT
+Declare @var1 varchar(20)
+set @var1='RAMIRO '
+print Right(@var1,2)
+--LEN numero de caracteres
+print LEN(@var1)
+--LOWER & UPPER
+print UPPER(LEFT(@var1,1))+LOWER(RIGHT(@VAR1,LEN(@VAR1)-1))
+--REPLACE
+select REPLACE(@var1,'r','@')
+--Replicate
+print REPLICATE('0',5) --repite n veces 
+--LTRIM & RTRIM elimna espacios
+Declare @var1 varchar(20)
+set @var1='RAMIRO '
+Select LTRIM(RTRIM(@var1))
+
