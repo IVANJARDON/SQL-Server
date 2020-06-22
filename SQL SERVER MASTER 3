@@ -1,0 +1,157 @@
+--FUNCIONES DEFINIDAS POR EL USUARIO
+
+
+
+--FUNCIONES ESCALARES
+
+--select dbo.nombrefun (256)
+select dbo.concatenar('Lopez','Roberto')
+select dbo.obtenerPais (9)
+
+select * from paciente
+
+CREATE FUNCTION nombrefun (@var int)
+RETURNS int
+
+AS
+
+BEGIN
+	set @var = @var * 5
+	return @var
+END
+
+CREATE FUNCTION concatenar (
+				@apellido varchar(50),
+				@nombre varchar(50)
+				)
+RETURNS varchar(100)
+
+AS
+BEGIN
+	declare @resultado varchar(100)
+	set @resultado = @apellido + ', ' + @nombre
+	return @resultado	
+
+END
+
+CREATE FUNCTION obtenerPais(
+				@idpaciente paciente
+				)
+RETURNS varchar(50)
+
+AS
+BEGIN
+	declare @pais varchar(50)
+	SET @pais = (SELECT PA.pais From paciente P
+					INNER JOIN Pais PA
+					ON PA.idPais = P.idPais
+					WHERE idPaciente=@idpaciente)
+	
+	RETURN @pais
+END
+
+--FUNCIONES DE TIPO TABLA
+
+select * from dbo.listaPaises()
+
+
+CREATE FUNCTION listaPaises()
+RETURNS @paises TABLE(idpais char(3), pais varchar(50))
+AS
+BEGIN
+	
+	INSERT INTO @paises values('ESP','España')
+	INSERT INTO @paises values('MEX','Mexico')
+	INSERT INTO @paises values('CHI','Chile')
+	INSERT INTO @paises values('PER','Perú')
+	INSERT INTO @paises values('ARG','Argentina')
+
+	RETURN
+
+END
+
+
+--***********************************************************************************************************************
+--Tabla temporales EN MEMORIA
+Declare @mitabla TABLE(id int IDENTITY(1,1), pais varchar (50))
+insert into @mitabla values('MEXICO')
+insert into @mitabla values('PERU')
+insert into @mitabla values('COLOMBIA')
+select * from @mitabla
+
+--Tabla temporales FISICA
+Create TABLE #mitabla (id int IDENTITY(1,1), pais varchar (50))
+insert into #mitabla values('MEXICO')
+insert into #mitabla values('PERU')
+insert into  #mitabla values('COLOMBIA')
+select * from #mitabla
+
+drop TABLE #mitabla--eliminarla
+
+
+--**************************************************************************************************************************
+--VISTAS es una sentencia select específica almacenada en la base de datos
+CREATE VIEW PacientesTurnosPendientes as
+select p.idpaciente, p.nombre, p.apellido, t.idturno, t.estado
+from paciente P
+inner join TurnoPaciente TP
+on TP.idPaciente=P.idPaciente
+inner join Turno T
+on T.idturno=TP.idturno
+where isnull(T.estado,0)=0
+
+Select * from  PacientesTurnosPendientes
+
+--**************************************************************************************************************************
+--Trigger es un desencadenador o disparador de un evento y tomar opciones
+-Eventos: Insert, delete or udpate
+
+CREATE TRIGGER PacientesCreado ON Panciente --Se dispara sobre un cambio en tabla paciente
+AFTER INSERT -se especifica el evento
+AS
+
+IF (SELECT idpais FROM inserted)='MEX'
+--inserted ultimo registro insertado
+  INSERT into PacienteLog (idpaciente, idpais, fechaAlta)
+  Select FROM i.idpaciente,i.idepais, getdate() from interted i
+--**************************************************************************************************************************
+--Crear un BACK UP
+-Se tiene que crear una carpeta de guardado
+-Vamos a la base de datos, opcion Task/ Back up
+--FULL 100%
+--Differential con base en un primer back-up, si e sel primero es = full
+Se guarda tipo bak
+
+--RESTAURAR UN BACK UP
+Clic derecho Databases/Restore database y elegir en device archivo .bak
+
+--Desde un script 
+BACKUP DATABASE CentroMedico
+to disk= 'C\backup_SQL\CENTROMEDICO20200622.bak'
+WITH NO_COMPRESSION, NAME='CentroMedico1'
+
+--Backup Dinamico con diferentes fechas
+declare @fecha char(12) --formato 201006221223
+declare @path varchar(100) 
+declare @name varchar(20)
+
+set @fecha=convert(char(8),getdate(),112)+replace(convert(char(5),getdate(),108),':','')
+print @fecha
+
+set @path= 'C\backup_SQL\CENTROMEDICO'+@fecha+'.bak'
+set @name='CentroMedico'+@fecha
+
+BACKUP DATABASE CentroMedico
+to disk= @path
+WITH NO_COMPRESSION, NAME=@name
+
+
+
+
+
+
+
+
+
+
+
