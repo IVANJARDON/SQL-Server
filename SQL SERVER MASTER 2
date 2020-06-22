@@ -1,0 +1,205 @@
+--Transacciones sirve para evaluar delete, update and set y evitar cambios inesperados
+BEGIN TRANSACTION
+COMMIT TRANSACTION
+ROLLBACK TRANSACTION
+
+--tambien se puede escribir TRAN, debes ejecutar Commit o Rollback porque si no la base queda bloqueada
+--@@ROWCOUNT sirve contar cuantos registros fueron modificados
+--Ejemplo
+BEGIN TRAN
+UPDATE paciente SET telefono=444 where idpaciente=8
+IF @@ROWCOUNT=1
+  COMMIT TRAN
+ELSE
+ROLLBACK TRAN
+
+BEGIN TRAN
+DELETE FROM turno where estado=0
+IF @@ROWCOUNT=1
+  COMMIT TRAN
+ELSE
+ROLLBACK TRAN
+
+--**********************************************************************************
+--JOINS -funciona como Merges en powerquery
+--INNER
+SELECT * FROM paciente P
+INNER JOIN TurnoPaciente T
+ON T.idpaciente=P.idpaciente
+
+--LEFT JOIN
+SELECT * FROM paciente P
+LEFT JOIN TurnoPaciente T
+ON T.idpaciente=P.idpaciente--se aconseja que el campo antes del igual sea correspondiente al campo despues del join
+
+--RIGHT JOIN
+SELECT * FROM paciente P
+RIGHT JOIN TurnoPaciente T
+ON T.idpaciente=P.idpaciente
+
+--UNION -- funciona como un Append de powerquery, número de campos debe ser el mismo asi como los tipos de dato
+SELECT * FROM turno where estado=3
+UNION
+SELECT * FROM turno where estado=1
+
+--UNION ALL funciona como el UNION pero con repeticiones
+SELECT * FROM turno 
+UNION ALL
+SELECT * FROM turno
+
+--***************************************************************************
+--STORE PRODECURES SELECT UPDATE AND DELETE
+
+--SELECT, procedimiento para hacer una consulta segun parametro
+--exec SELECT_turnospaciente 6 
+
+CREATE PROC SELECT_TurnosPaciente(
+				@idpaciente paciente
+				)
+
+AS
+set nocount on
+
+/*
+select * from turno
+select * from turnopaciente
+select * from paciente
+select * from MedicoEspecialidad
+insert into medicoespecialidad values(1,2,'Medico Clinico')
+*/
+
+IF exists(SELECT * from Paciente P
+				INNER JOIN TurnoPaciente TP
+				ON TP.idPaciente = P.idPaciente
+				INNER JOIN Turno T
+				ON T.idTurno = TP.idTurno
+				INNER JOIN MedicoEspecialidad M
+				ON M.idMedico = TP.idMedico
+				WHERE P.idpaciente = @idpaciente
+				)
+	SELECT * from Paciente P
+	INNER JOIN TurnoPaciente TP
+	ON TP.idPaciente = P.idPaciente
+	INNER JOIN Turno T
+	ON T.idTurno = TP.idTurno
+	INNER JOIN MedicoEspecialidad M
+	ON M.idMedico = TP.idMedico
+	WHERE P.idpaciente = @idpaciente
+else
+	select 0 as resultado
+
+--Proceso para traer la historia clinica de un apciente
+exec SELECT_HistoriaPaciente 1
+
+CREATE PROC SEL_HistoriaPaciente(
+				@idpaciente paciente)
+
+AS
+set nocount on
+
+/*
+select * from historia
+select * from historiapaciente
+
+*/
+
+IF exists(SELECT * from Paciente P
+				INNER JOIN HistoriaPaciente HP
+				ON HP.idPaciente = P.idPaciente
+				INNER JOIN Historia H
+				ON H.idHistoria = HP.idHistoria
+				INNER JOIN MedicoEspecialidad ME
+				ON ME.idMedico = HP.idMedico
+				INNER JOIN Medico M
+				ON M.idMedico = ME.idMedico
+				WHERE P.idPaciente = @idpaciente)
+	SELECT * from Paciente P
+	INNER JOIN HistoriaPaciente HP
+	ON HP.idPaciente = P.idPaciente
+	INNER JOIN Historia H
+	ON H.idHistoria = HP.idHistoria
+	INNER JOIN MedicoEspecialidad ME
+	ON ME.idMedico = HP.idMedico
+	INNER JOIN Medico M
+	ON M.idMedico = ME.idMedico
+	WHERE P.idPaciente = @idpaciente
+ELSE
+	--print 'No existen historias clinicas para el paciente'
+	select 0 as resultado
+
+
+--PROCESO PARA TREAR Las especialidades medicas
+--exec SEL_EspecialidadesMedica
+
+CREATE PROC SEL_EspecialidadesMedica   --sin parentesis porque no lleva parametros
+
+AS
+set nocount on
+
+--select * from especialidad
+
+
+if exists(SELECT * from especialidad)
+	SELECT * from especialidad
+else
+	select 0 as resultado
+
+
+---Procedimiento para actualizar estado y observación de un turno
+
+/*
+select * from paciente
+select * from turno
+select * from turnopaciente
+
+*/
+
+--EXEC upd_turno 4,1,'El paciente ha sido atendido'
+
+
+
+CREATE PROC UPD_Turno(
+				@idturno turno,
+				@estado tinyint,
+				@observacion observacion)
+
+AS
+set nocount on
+
+if exists(SELECT * from Turno
+			WHERE idturno = @idturno)
+	UPDATE Turno SET estado = @estado,
+					observacion = @observacion
+	WHERE idturno = @idturno
+
+
+ELSE
+	SELECT 0 as resultado
+
+
+---Proceso para eliminar el turno de un paciente que esta en dos tablas
+/*
+select * from turno
+select * from turnopaciente
+*/
+
+--EXEC DEL_turno 10
+
+CREATE PROC DEL_Turno(
+				@idturno turno				)
+
+AS
+set nocount on
+
+
+if exists(SELECT * from Turno
+			WHERE idturno = @idturno)
+BEGIN	
+	DELETE FROM TurnoPaciente WHERE idturno = @idturno
+	DELETE FROM Turno WHERE idturno = @idturno
+END
+ELSE
+	SELECT 0 as resultado
+
+
+
