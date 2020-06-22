@@ -361,4 +361,39 @@ print REPLICATE('0',5) --repite n veces
 Declare @var1 varchar(20)
 set @var1='RAMIRO '
 Select LTRIM(RTRIM(@var1))
+--Concat
+ CONCAT(@var1,@var1,@var1,@var1,@var1,@var1)
+--FECHA Y HORA ACTUAL
+select getdate()
+select getutcdate()--utc
+--DATEADD SUMAR O RESTAR a fecha, horas, minutos etc
+Select DATEADD(day,2,getdate())--en lugar de day podemos poner dd,mm,yy,mi
+--DATEDIFF diferencia de fechas, horas, minutos etc
+Select DATEDIFF(mi,getdate(),'20200621 22:03')
+--DATEPART trae la parte de fecha que necesitas
+select DATEPART(dw,getdate())
+select DATEPART(dd,getdate())
+select DATEPART(mm,getdate())
+
+USE EDW
+select DATEPART(dd,DepartureDate) FROM PNR WHERE  RECORDLOCATOR='ZKNVVRZ'
+
+--ISDATE, Evalua si una fecha tiene formato correcto o no
+print ISDATE(getdate())
+print ISDATE('HSHSHS'))
+
+--CAST muestra el valor en un determinado tipo de dato 
+declare @numero money
+set @numero=500.40
+print @numero
+select CAST(@numero as INT) AS numero
+
+
+--CONVERT convertir y mostrar una variable o campo a un determinado tipo de dato y darle formato 
+print convert(char(8),getdate(),112)
+print convert(char(8),getdate(),104)
+
+
+
+ 
 
