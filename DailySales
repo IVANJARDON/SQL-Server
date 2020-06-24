@@ -1,7 +1,7 @@
 USE EDW
 SELECT DS.BookingNumber
       ,DS.CurrencyCode
-      ,DS.BookingBookDate
+      ,Convert(VARCHAR(10),DS.BookingBookDate,120) as Bookingbookdate
 	  ,DATEPART(dd,DS.BookingBookDate) as Booking_day--dia compra
 	  ,DATEPART(ww,DS.BookingBookDate) as Booking_week--semana compra
 	  ,DATEPART(dw,DS.BookingBookDate) as Booking_Dayofweek--dia semana compra
@@ -18,30 +18,32 @@ SELECT DS.BookingNumber
 	  ,P.MarketLeg
 	  ,P.Leg
 	  ,P.DepartureDate
-	  ,DATEPART(dd,P.DepartureDate) as Departure_day--dia compra
-	  ,DATEPART(ww,P.DepartureDate) as Departure_week--semana compra
-	  ,DATEPART(dw,P.DepartureDate) as Departure_Dayofweek--dia semana compra
-	  ,DATEPART(mm,P.DepartureDate) as Departure_Month--mes compra
-	  ,DATEPART(yy,P.DepartureDate) as Departure_Year--año compra
+	  ,DATEPART(dd,P.DepartureDate) as Departure_day--dia vuelo
+	  ,DATEPART(ww,P.DepartureDate) as Departure_week--semana vuelo
+	  ,DATEPART(dw,P.DepartureDate) as Departure_Dayofweek--dia semana vuelo
+	  ,DATEPART(mm,P.DepartureDate) as Departure_Month--mes vuelo
+	  ,DATEPART(yy,P.DepartureDate) as Departure_Year--año vuelo
 	  ,P.BookingClass
 	  ,CASE WHEN P.InitialPaymentType='VO' THEN 'Voucher'
 	  else 'Regular'
 	  END
 	  AS Pax_type
 	  ,CASE 
-	  WHEN P.AirlineCode = 'VH' AND TypeD_I = 'D' THEN 'Colombia'
-	  WHEN P.AirlineCode= 'VV' AND TypeD_I = 'D' THEN 'Peru'
+	  WHEN P.AirlineCode = 'VH' AND P.TypeD_I = 'D' THEN 'Colombia'
+	  WHEN P.AirlineCode= 'VV' AND P.TypeD_I = 'D' THEN 'Peru'
 	  ELSE 'Internacional'
 	  END AS Market_Type
 
 	  ,CASE 
-	  WHEN BookingClass= 'X' OR BookingClass = 'C' THEN 'Grupos&Bloqueos'
-	  WHEN BookingClass= 'Z' OR BookingClass = 'F' THEN 'Staff&Tiqueteregalo'
-	  WHEN BookingClass= 'R' OR BookingClass = 'I' THEN 'Otro'
-	  WHEN BookingClass= 'V' THEN 'V'
-	  WHEN BookingClass= 'Y' THEN 'Y'
+	  WHEN P.BookingClass= 'X' OR P.BookingClass = 'C' THEN 'Grupos&Bloqueos'
+	  WHEN P.BookingClass= 'Z' OR P.BookingClass = 'F' THEN 'Staff&Tiqueteregalo'
+	  WHEN P.BookingClass= 'R' OR P.BookingClass = 'I' THEN 'Otro'
+	  WHEN P.BookingClass= 'V' THEN 'V'
+	  WHEN P.BookingClass= 'Y' THEN 'Y'
 	  ELSE 'Estructura_regular_W_U'
 	  END AS Pax_Type_Clase
+	  
+	  ,I.FlightStatus
 
 	  ,CASE WHEN DS.CurrencyCode='COP' THEN DS.NetFlightRevenueRM*ER.ExchangeFactor
 	  ELSE DS.NetFlightRevenueRM
@@ -55,13 +57,13 @@ SELECT DS.BookingNumber
 	  ELSE DS.NetTotalRevenueRM
 	  END
 	  AS  NetTotalRevenueRM_USD
-
-
 FROM ReportDailySales as DS
 LEFT JOIN DailyExchangeFactor AS ER
 ON ER.FactorDate=DS.BookingBookDate
 LEFT JOIN PNR AS P
 ON P.BookingNumber=DS.BookingNumber
+LEFT JOIN Inventory AS I
+on CONCAT(P.FlightNumber,P.DepartureDate,P.Leg)=CONCAT(I.FlightNumber,I.DepartureDate,I.Leg)
 where DS.BookingBookDate>='2020-03-01'and
 ER.FromCurrencyCode='COP' and ER.ToCurrencyCode='USD' and ER.Source='Navitaire'
 order by FactorDate Desc
