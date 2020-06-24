@@ -2,22 +2,27 @@ USE EDW
 SELECT DS.BookingNumber
       ,DS.CurrencyCode
       ,DS.BookingBookDate
+	  ,DATEPART(dd,DS.BookingBookDate) as Booking_day--dia compra
+	  ,DATEPART(ww,DS.BookingBookDate) as Booking_week--semana compra
+	  ,DATEPART(dw,DS.BookingBookDate) as Booking_Dayofweek--dia semana compra
+	  ,DATEPART(mm,DS.BookingBookDate) as Booking_Month--mes compra
+	  ,DATEPART(yy,DS.BookingBookDate) as Booking_Year--año compra
 	  ,DS.PaxSectors
       ,DS.NetFlightRevenueRM
       ,DS.NetAncillaryRevenueRM
       ,DS.NetTotalRevenueRM
 	  ,ER.ExchangeFactor
 	  ,DS.BookingBookDate
-	  ,DATEPART(dd,DS.BookingBookDate) as Booking_day--dia compra
-	  ,DATEPART(ww,DS.BookingBookDate) as Booking_week--semana compra
-	  ,DATEPART(dw,DS.BookingBookDate) as Booking_Dayofweek--dia semana compra
-	  ,DATEPART(mm,DS.BookingBookDate) as Booking_Month--mes compra
-	  ,DATEPART(yy,DS.BookingBookDate) as Booking_Year--año compra
 	  ,P.AirlineCode
 	  ,P.FlightNumber
 	  ,P.MarketLeg
 	  ,P.Leg
 	  ,P.DepartureDate
+	  ,DATEPART(dd,P.DepartureDate) as Departure_day--dia compra
+	  ,DATEPART(ww,P.DepartureDate) as Departure_week--semana compra
+	  ,DATEPART(dw,P.DepartureDate) as Departure_Dayofweek--dia semana compra
+	  ,DATEPART(mm,P.DepartureDate) as Departure_Month--mes compra
+	  ,DATEPART(yy,P.DepartureDate) as Departure_Year--año compra
 	  ,P.BookingClass
 	  ,CASE WHEN P.InitialPaymentType='VO' THEN 'Voucher'
 	  else 'Regular'
