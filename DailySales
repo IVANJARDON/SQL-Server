@@ -1,0 +1,62 @@
+USE EDW
+SELECT DS.BookingNumber
+      ,DS.CurrencyCode
+      ,DS.BookingBookDate
+	  ,DS.PaxSectors
+      ,DS.NetFlightRevenueRM
+      ,DS.NetAncillaryRevenueRM
+      ,DS.NetTotalRevenueRM
+	  ,ER.ExchangeFactor
+	  ,DS.BookingBookDate
+	  ,DATEPART(dd,DS.BookingBookDate) as Booking_day--dia compra
+	  ,DATEPART(ww,DS.BookingBookDate) as Booking_week--semana compra
+	  ,DATEPART(dw,DS.BookingBookDate) as Booking_Dayofweek--dia semana compra
+	  ,DATEPART(mm,DS.BookingBookDate) as Booking_Month--mes compra
+	  ,DATEPART(yy,DS.BookingBookDate) as Booking_Year--año compra
+	  ,P.AirlineCode
+	  ,P.FlightNumber
+	  ,P.MarketLeg
+	  ,P.Leg
+	  ,P.DepartureDate
+	  ,P.BookingClass
+	  ,CASE WHEN P.InitialPaymentType='VO' THEN 'Voucher'
+	  else 'Regular'
+	  END
+	  AS Pax_type
+	  ,CASE 
+	  WHEN P.AirlineCode = 'VH' AND TypeD_I = 'D' THEN 'Colombia'
+	  WHEN P.AirlineCode= 'VV' AND TypeD_I = 'D' THEN 'Peru'
+	  ELSE 'Internacional'
+	  END AS Market_Type
+
+	  ,CASE 
+	  WHEN BookingClass= 'X' OR BookingClass = 'C' THEN 'Grupos&Bloqueos'
+	  WHEN BookingClass= 'Z' OR BookingClass = 'F' THEN 'Staff&Tiqueteregalo'
+	  WHEN BookingClass= 'R' OR BookingClass = 'I' THEN 'Otro'
+	  WHEN BookingClass= 'V' THEN 'V'
+	  WHEN BookingClass= 'Y' THEN 'Y'
+	  ELSE 'Estructura_regular_W_U'
+	  END AS Pax_Type_Clase
+
+	  ,CASE WHEN DS.CurrencyCode='COP' THEN DS.NetFlightRevenueRM*ER.ExchangeFactor
+	  ELSE DS.NetFlightRevenueRM
+	  END
+	  AS  NetFlightRevenueRM_USD
+	  ,CASE WHEN DS.CurrencyCode='COP' THEN DS.NetAncillaryRevenueRM*ER.ExchangeFactor
+	  ELSE DS.NetAncillaryRevenueRM
+	  END
+	  AS  NetAncillaryRevenueRM_USD
+	  ,CASE WHEN DS.CurrencyCode='COP' THEN DS.NetTotalRevenueRM*ER.ExchangeFactor
+	  ELSE DS.NetTotalRevenueRM
+	  END
+	  AS  NetTotalRevenueRM_USD
+
+
+FROM ReportDailySales as DS
+LEFT JOIN DailyExchangeFactor AS ER
+ON ER.FactorDate=DS.BookingBookDate
+LEFT JOIN PNR AS P
+ON P.BookingNumber=DS.BookingNumber
+where DS.BookingBookDate>='2020-03-01'and
+ER.FromCurrencyCode='COP' and ER.ToCurrencyCode='USD' and ER.Source='Navitaire'
+order by FactorDate Desc
